@@ -734,6 +734,44 @@
         flex-direction: column;
       }
     }
+    .interest-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.interest-meta {
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.interest-count {
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.interest-count span {
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.interest-status {
+  margin-top: 0.45rem;
+  font-size: 0.94rem;
+  color: var(--muted);
+  min-height: 1.4rem;
+}
+
+#interestBtn[disabled] {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
   </style>
 </head>
 <body>
@@ -749,7 +787,7 @@
         <a href="#how">How It Works</a>
         <a href="#vision">Vision</a>
       </nav>
-      <a href="#cta" class="btn btn-primary">Join Waitlist</a>
+      <a href="#cta" class="btn btn-primary">Donate T€</a>
     </div>
   </header>
 
@@ -983,10 +1021,17 @@
               Learn the markets, simulate strategies, and build your confidence in a platform designed for both curiosity and ambition.
             </p>
           </div>
-          <div class="hero-actions" style="margin-bottom: 0;">
-            <a href="#" class="btn btn-primary">Get Started</a>
-            <a href="#features" class="btn btn-secondary">See Features</a>
-          </div>
+          <div class="hero-actions interest-wrap" style="margin-bottom: 0;">
+  <button id="interestBtn" class="btn btn-primary" type="button">Show Interest</button>
+  <a href="#features" class="btn btn-secondary">See Features</a>
+</div>
+
+<div class="interest-meta">
+  <div class="interest-count">
+    <span id="interestCount">—</span> people have shown interest
+  </div>
+  <div id="interestStatus" class="interest-status"></div>
+</div>
         </div>
       </div>
     </section>
@@ -1008,4 +1053,72 @@
     </div>
   </footer>
 </body>
+<script>
+  const interestBtn = document.getElementById('interestBtn');
+  const interestCount = document.getElementById('interestCount');
+  const interestStatus = document.getElementById('interestStatus');
+
+  const LOCAL_KEY = 'tradechip-interest-recorded';
+
+  function setRecordedState(message) {
+    interestBtn.disabled = true;
+    interestBtn.textContent = 'Interest Recorded ✓';
+    interestStatus.textContent = message;
+  }
+
+  async function loadInterestCount() {
+    try {
+      const res = await fetch('/api/interest');
+      const data = await res.json();
+      interestCount.textContent = data.count ?? 0;
+
+      if (localStorage.getItem(LOCAL_KEY) === 'true') {
+        setRecordedState("You've already shown interest.");
+      }
+    } catch (err) {
+      interestCount.textContent = '0';
+      interestStatus.textContent = 'Could not load interest count.';
+    }
+  }
+
+  interestBtn?.addEventListener('click', async () => {
+    if (localStorage.getItem(LOCAL_KEY) === 'true') {
+      setRecordedState("You've already shown interest.");
+      return;
+    }
+
+    interestBtn.disabled = true;
+    interestBtn.textContent = 'Recording...';
+    interestStatus.textContent = '';
+
+    try {
+      const res = await fetch('/api/interest', {
+        method: 'POST'
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong.');
+      }
+
+      interestCount.textContent = data.count ?? 0;
+
+      if (data.alreadyCounted) {
+        localStorage.setItem(LOCAL_KEY, 'true');
+        setRecordedState('Interest already recorded from this browser/network.');
+        return;
+      }
+
+      localStorage.setItem(LOCAL_KEY, 'true');
+      setRecordedState("You're in. Your interest has been recorded.");
+    } catch (err) {
+      interestBtn.disabled = false;
+      interestBtn.textContent = 'Show Interest';
+      interestStatus.textContent = err.message || 'Failed to record interest.';
+    }
+  });
+
+  loadInterestCount();
+</script>
 </html>
