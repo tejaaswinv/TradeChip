@@ -23,6 +23,7 @@ async function getCount() {
 export async function GET() {
   try {
     const count = await getCount();
+
     return Response.json(
       { count },
       {
@@ -33,7 +34,10 @@ export async function GET() {
     );
   } catch (error) {
     return Response.json(
-      { error: 'Failed to fetch interest count.' },
+      {
+        error: 'Failed to fetch interest count.',
+        details: error?.message || String(error)
+      },
       { status: 500 }
     );
   }
@@ -78,7 +82,10 @@ export async function POST(request) {
     });
   } catch (error) {
     return Response.json(
-      { error: 'Failed to record interest.' },
+      {
+        error: 'Failed to record interest.',
+        details: error?.message || String(error)
+      },
       { status: 500 }
     );
   }
